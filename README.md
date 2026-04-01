@@ -124,6 +124,9 @@ From the `docs-web` directory:
 mvn jetty:run
 ```
 
+The application will be available directly at `http://localhost:8080/`.
+Its development data is stored under `data/docs/`, so documents and metadata persist across server restarts.
+
 ### Build a .war to deploy to your servlet container
 
 From the `docs-web` directory:
