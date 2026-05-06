@@ -64,6 +64,7 @@
     <org.apache.maven.plugins.maven-pmd-plugin.version>3.28.0</org.apache.maven.plugins.maven-pmd-plugin.version>
     <org.apache.maven.plugins.maven-project-info-reports-plugin.version>3.9.0</org.apache.maven.plugins.maven-project-info-reports-plugin.version>
     <org.apache.maven.plugins.maven-resources-plugin.version>3.3.1</org.apache.maven.plugins.maven-resources-plugin.version>
+    <org.apache.maven.plugins.maven-site-plugin.version>3.21.0</org.apache.maven.plugins.maven-site-plugin.version>
     <org.apache.maven.plugins.maven-war-plugin.version>3.3.2</org.apache.maven.plugins.maven-war-plugin.version>
     <org.apache.maven.plugins.maven-surefire-plugin.version>3.0.0</org.apache.maven.plugins.maven-surefire-plugin.version>
     <org.jacoco.jacoco-maven-plugin.version>0.8.14</org.jacoco.jacoco-maven-plugin.version>
@@ -123,6 +124,12 @@
           <failOnWarnings>false</failOnWarnings>
           <release>${maven.compiler.release}</release>
         </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>${org.apache.maven.plugins.maven-site-plugin.version}</version>
       </plugin>
 
       <plugin>
