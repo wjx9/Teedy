@@ -158,6 +158,21 @@ public class AppResource extends BaseResource {
      * @param enabled If true, enable OCR
      * @return Response
      */
+    @GET
+    @Path("ocr")
+    public Response getOcr() {
+        if (!authenticate()) {
+            throw new ForbiddenClientException();
+        }
+        checkBaseFunction(BaseFunction.ADMIN);
+
+        return Response.ok()
+                .entity(Json.createObjectBuilder()
+                        .add("enabled", ConfigUtil.getConfigBooleanValue(ConfigType.OCR_ENABLED, true))
+                        .build())
+                .build();
+    }
+
     @POST
     @Path("ocr")
     public Response ocr(@FormParam("enabled") Boolean enabled) {

@@ -5,6 +5,8 @@ pipeline {
         JAVA_HOME = "/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home"
         PATH = "/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home/bin:/opt/homebrew/bin:/usr/local/bin:${env.PATH}"
         MAVEN_ARGS = "-B -ntp"
+        DOCS_DEFAULT_LANGUAGE = "en"
+        DOCS_BASE_URL = "http://localhost/docs"
     }
 
     options {

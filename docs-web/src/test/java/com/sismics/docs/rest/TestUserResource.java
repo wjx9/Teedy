@@ -434,7 +434,7 @@ public class TestUserResource extends BaseJerseyTest {
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .post(Entity.form(new Form()
                         .param("hostname", "localhost")
-                        .param("port", "2500")
+                        .param("port", String.valueOf(getSmtpPort()))
                         .param("from", "contact@sismicsdocs.com")
                 ), JsonObject.class);
 
@@ -454,7 +454,7 @@ public class TestUserResource extends BaseJerseyTest {
         Assert.assertEquals("ok", json.getString("status"));
         String emailBody = popEmail();
         Assert.assertNotNull("No email to consume", emailBody);
-        Assert.assertTrue(emailBody.contains("Please reset your password"));
+        Assert.assertTrue("Password reset link not found", emailBody.contains("/#/passwordreset/"));
         Pattern keyPattern = Pattern.compile("/passwordreset/(.+?)\"");
         Matcher keyMatcher = keyPattern.matcher(emailBody);
         Assert.assertTrue("Token not found", keyMatcher.find());

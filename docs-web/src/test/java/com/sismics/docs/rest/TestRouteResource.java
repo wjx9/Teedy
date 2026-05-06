@@ -29,14 +29,7 @@ public class TestRouteResource extends BaseJerseyTest {
         // Login admin
         String adminToken = adminToken();
 
-        // Change SMTP configuration to target Wiser
-        target().path("/app/config_smtp").request()
-                .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
-                .post(Entity.form(new Form()
-                        .param("hostname", "localhost")
-                        .param("port", "2500")
-                        .param("from", "contact@sismicsdocs.com")
-                ), JsonObject.class);
+        configureSmtp(adminToken);
 
         // Add an ACL READ for route1 with admin on the default workflow
         target().path("/acl").request()
@@ -73,7 +66,7 @@ public class TestRouteResource extends BaseJerseyTest {
                         .param("routeModelId", routeModels.getJsonObject(0).getString("id"))), JsonObject.class);
         JsonObject step = json.getJsonObject("route_step");
         Assert.assertEquals("Check the document's metadata", step.getString("name"));
-        Assert.assertTrue(popEmail().contains("workflow step"));
+        assertRouteEmailContainsDocumentLink();
 
         // List all documents with route1
         json = target().path("/document/list")
@@ -150,7 +143,7 @@ public class TestRouteResource extends BaseJerseyTest {
         step = json.getJsonObject("route_step");
         Assert.assertEquals("Add relevant files to the document", step.getString("name"));
         Assert.assertTrue(json.getBoolean("readable"));
-        Assert.assertTrue(popEmail().contains("workflow step"));
+        assertRouteEmailContainsDocumentLink();
 
         // Get the route on document 1
         json = target().path("/route")
@@ -189,7 +182,7 @@ public class TestRouteResource extends BaseJerseyTest {
         step = json.getJsonObject("route_step");
         Assert.assertEquals("Approve the document", step.getString("name"));
         Assert.assertTrue(json.getBoolean("readable"));
-        Assert.assertTrue(popEmail().contains("workflow step"));
+        assertRouteEmailContainsDocumentLink();
 
         // Get the route on document 1
         json = target().path("/route")
@@ -281,7 +274,7 @@ public class TestRouteResource extends BaseJerseyTest {
                 .post(Entity.form(new Form()
                         .param("documentId", document1Id)
                         .param("routeModelId", routeModels.getJsonObject(0).getString("id"))), JsonObject.class);
-        Assert.assertTrue(popEmail().contains("workflow step"));
+        assertRouteEmailContainsDocumentLink();
 
         // Get document 1 as route1
         json = target().path("/document/" + document1Id).request()
@@ -365,6 +358,7 @@ public class TestRouteResource extends BaseJerseyTest {
     public void testTagActions() {
         // Login admin
         String adminToken = adminToken();
+        configureSmtp(adminToken);
 
         // Create an Approved tag
         JsonObject json = target().path("/tag").request()
@@ -510,5 +504,21 @@ public class TestRouteResource extends BaseJerseyTest {
                 .request()
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .delete(JsonObject.class);
+    }
+
+    private void assertRouteEmailContainsDocumentLink() throws Exception {
+        String emailBody = popEmail();
+        Assert.assertNotNull("No route email to consume", emailBody);
+        Assert.assertTrue("Route email does not link to a document", emailBody.contains("/#/document/"));
+    }
+
+    private void configureSmtp(String adminToken) {
+        Response response = target().path("/app/config_smtp").request()
+                .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
+                .post(Entity.form(new Form()
+                        .param("hostname", "localhost")
+                        .param("port", String.valueOf(getSmtpPort()))
+                        .param("from", "contact@sismicsdocs.com")));
+        Assert.assertEquals(Response.Status.OK, Response.Status.fromStatusCode(response.getStatus()));
     }
 }

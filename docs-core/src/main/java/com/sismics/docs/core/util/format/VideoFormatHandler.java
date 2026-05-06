@@ -48,10 +48,16 @@ public class VideoFormatHandler implements FormatHandler {
 
     @Override
     public String extractContent(String language, Path file) {
-        List<String> result = Lists.newLinkedList();
-        result.add("mediainfo");
-        result.add(file.toAbsolutePath().toString());
-        ProcessBuilder pb = new ProcessBuilder(result);
+        String content = extractContent(Lists.newLinkedList(Arrays.asList("mediainfo", file.toAbsolutePath().toString())), false);
+        if (content != null) {
+            return content;
+        }
+
+        return extractContent(Lists.newLinkedList(Arrays.asList("ffmpeg", "-i", file.toAbsolutePath().toString())), true);
+    }
+
+    private String extractContent(List<String> command, boolean readErrorStream) {
+        ProcessBuilder pb = new ProcessBuilder(command);
         Process process;
         try {
             process = pb.start();
@@ -59,13 +65,15 @@ public class VideoFormatHandler implements FormatHandler {
             return null;
         }
 
-        // Consume the process error stream
-        final String commandName = pb.command().get(0);
-        new InputStreamReaderThread(process.getErrorStream(), commandName).start();
-
-        // Consume the data as a string
         try (InputStream is = process.getInputStream()) {
-            return new String(ByteStreams.toByteArray(is), StandardCharsets.UTF_8);
+            String content = new String(ByteStreams.toByteArray(is), StandardCharsets.UTF_8);
+            if (readErrorStream) {
+                content += new String(ByteStreams.toByteArray(process.getErrorStream()), StandardCharsets.UTF_8);
+            } else {
+                final String commandName = pb.command().get(0);
+                new InputStreamReaderThread(process.getErrorStream(), commandName).start();
+            }
+            return content.trim().isEmpty() ? null : content;
         } catch (Exception e) {
             return null;
         }

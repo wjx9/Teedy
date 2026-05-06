@@ -41,6 +41,7 @@ public class TestAppResource extends BaseJerseyTest {
     private static boolean configInboxChanged = false;
     private static boolean configSmtpChanged = false;
     private static boolean configLdapChanged = false;
+    private static boolean configOcrChanged = false;
 
     @Test
     public void testAppResource() {
@@ -58,7 +59,7 @@ public class TestAppResource extends BaseJerseyTest {
         Assert.assertTrue(totalMemory > 0 && totalMemory > freeMemory);
         Assert.assertEquals(0, json.getJsonNumber("queued_tasks").intValue());
         Assert.assertTrue(json.getBoolean("guest_login"));
-        Assert.assertFalse(json.getBoolean("ocr_enabled"));
+        Assert.assertTrue(json.getBoolean("ocr_enabled"));
         Assert.assertEquals("eng", json.getString("default_language"));
         Assert.assertTrue(json.containsKey("global_storage_current"));
         Assert.assertTrue(json.getJsonNumber("active_user_count").longValue() > 0);
@@ -205,19 +206,31 @@ public class TestAppResource extends BaseJerseyTest {
         JsonObject json = target().path("/app/ocr").request()
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .get(JsonObject.class);
-        if (!configInboxChanged) {
-            Assert.assertFalse(json.getBoolean("enabled"));
+        if (!configOcrChanged) {
+            Assert.assertTrue(json.getBoolean("enabled"));
         }
 
         // Change OCR configuration
         target().path("/app/ocr").request()
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .post(Entity.form(new Form()
-                        .param("enabled", "true")
+                        .param("enabled", "false")
                 ), JsonObject.class);
-        configInboxChanged = true;
+        configOcrChanged = true;
 
         // Get OCR configuration
+        json = target().path("/app/ocr").request()
+                .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
+                .get(JsonObject.class);
+        Assert.assertFalse(json.getBoolean("enabled"));
+
+        // Restore OCR configuration
+        target().path("/app/ocr").request()
+                .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
+                .post(Entity.form(new Form()
+                        .param("enabled", "true")
+                ), JsonObject.class);
+
         json = target().path("/app/ocr").request()
                 .cookie(TokenBasedSecurityFilter.COOKIE_NAME, adminToken)
                 .get(JsonObject.class);
