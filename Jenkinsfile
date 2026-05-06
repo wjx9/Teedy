@@ -36,7 +36,7 @@ pipeline {
 
         stage('PMD') {
             steps {
-                sh 'mvn pmd:pmd'
+                sh 'mvn install -DskipTests pmd:pmd'
             }
         }
 
