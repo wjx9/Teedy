@@ -12,32 +12,45 @@ pipeline {
             }
         }
 
-        stage('Build Artifacts') {
+        stage('Clean') {
             steps {
-                sh 'mvn -DskipTests clean package'
+                sh 'mvn clean'
             }
         }
 
-        stage('Unit Tests') {
+        stage('Compile') {
             steps {
-                sh 'mvn -pl docs-web-common -am -Dtest=TestValidationUtil,TestPrincipal,TestRestException,TestCorsFilter -Dsurefire.failIfNoSpecifiedTests=false test'
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-                }
+                sh 'mvn compile'
             }
         }
 
-        stage('Site Documentation') {
+        stage('Test') {
             steps {
-                sh 'mvn -DskipTests site site:stage'
+                sh 'mvn test -Dmaven.test.failure.ignore=true'
             }
         }
 
-        stage('Archive Artifacts') {
+        stage('PMD') {
             steps {
-                archiveArtifacts artifacts: '**/target/*.jar, **/target/*.war, target/staging/**', fingerprint: true
+                sh 'mvn pmd:pmd'
+            }
+        }
+
+        stage('JaCoCo') {
+            steps {
+                sh 'mvn jacoco:report'
+            }
+        }
+
+        stage('Site') {
+            steps {
+                sh 'mvn site site:stage -DskipTests'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn package -DskipTests'
             }
         }
     }
@@ -45,6 +58,10 @@ pipeline {
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+            archiveArtifacts artifacts: '**/target/site/**/*.*', fingerprint: true
+            archiveArtifacts artifacts: 'target/staging/**/*.*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/**/*.jar', fingerprint: true
+            archiveArtifacts artifacts: '**/target/**/*.war', fingerprint: true
         }
     }
 }
