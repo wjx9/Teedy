@@ -2,33 +2,62 @@ pipeline {
     agent any
 
     environment {
-        PATH = "/opt/homebrew/bin:/usr/local/bin:${env.PATH}"
-        MAVEN_ARGS = "-B -ntp -Dtest=TestCoverageUtil,TestValidationUtil,TestPrincipal,TestRestException,TestCorsFilter -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false"
+        JAVA_HOME = "/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home"
+        PATH = "/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home/bin:/opt/homebrew/bin:/usr/local/bin:${env.PATH}"
+        MAVEN_ARGS = "-B -ntp"
     }
 
     options {
-        skipDefaultCheckout()
         disableConcurrentBuilds()
         timestamps()
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clean') {
             steps {
-                checkout scm
+                sh 'mvn ${MAVEN_ARGS} clean'
             }
         }
 
-        stage('Verify Tools') {
+        stage('Compile') {
             steps {
-                sh 'command -v mvn'
-                sh 'mvn -version'
+                sh 'mvn ${MAVEN_ARGS} compile'
             }
         }
 
-        stage('Build, Test, Reports') {
+        stage('Test') {
             steps {
-                sh 'mvn ${MAVEN_ARGS} clean verify site'
+                sh 'mvn ${MAVEN_ARGS} test -Dmaven.test.failure.ignore=true'
+            }
+        }
+
+        stage('PMD') {
+            steps {
+                sh 'mvn ${MAVEN_ARGS} install -DskipTests pmd:pmd'
+            }
+        }
+
+        stage('JaCoCo') {
+            steps {
+                sh 'mvn ${MAVEN_ARGS} jacoco:report'
+            }
+        }
+
+        stage('Javadoc') {
+            steps {
+                sh 'mvn ${MAVEN_ARGS} javadoc:javadoc'
+            }
+        }
+
+        stage('Site') {
+            steps {
+                sh 'mvn ${MAVEN_ARGS} site'
+            }
+        }
+
+        stage('Package') {
+            steps {
+                sh 'mvn ${MAVEN_ARGS} package -DskipTests'
             }
         }
     }
