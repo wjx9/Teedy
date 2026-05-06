@@ -48,7 +48,7 @@ pipeline {
 
         stage('Site') {
             steps {
-                sh 'mvn site site:stage -DskipTests'
+                sh 'mvn site -DskipTests'
             }
         }
 
