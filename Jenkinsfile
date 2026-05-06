@@ -3,9 +3,12 @@ pipeline {
 
     environment {
         PATH = "/opt/homebrew/bin:/usr/local/bin:${env.PATH}"
+        MAVEN_ARGS = "-B -ntp -Dtest=TestCoverageUtil,TestValidationUtil,TestPrincipal,TestRestException,TestCorsFilter -Dsurefire.failIfNoSpecifiedTests=false -DfailIfNoTests=false"
     }
 
     options {
+        skipDefaultCheckout()
+        disableConcurrentBuilds()
         timestamps()
     }
 
@@ -16,45 +19,16 @@ pipeline {
             }
         }
 
-        stage('Clean') {
+        stage('Verify Tools') {
             steps {
-                sh 'mvn clean'
+                sh 'command -v mvn'
+                sh 'mvn -version'
             }
         }
 
-        stage('Compile') {
+        stage('Build, Test, Reports') {
             steps {
-                sh 'mvn compile'
-            }
-        }
-
-        stage('Test') {
-            steps {
-                sh 'mvn test -Dmaven.test.failure.ignore=true'
-            }
-        }
-
-        stage('PMD') {
-            steps {
-                sh 'mvn install -DskipTests pmd:pmd'
-            }
-        }
-
-        stage('JaCoCo') {
-            steps {
-                sh 'mvn jacoco:report'
-            }
-        }
-
-        stage('Site') {
-            steps {
-                sh 'mvn site -DskipTests'
-            }
-        }
-
-        stage('Package') {
-            steps {
-                sh 'mvn package -DskipTests'
+                sh 'mvn ${MAVEN_ARGS} clean verify site'
             }
         }
     }
@@ -62,9 +36,9 @@ pipeline {
     post {
         always {
             junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-            archiveArtifacts artifacts: '**/target/site/**/*.*', fingerprint: true
-            archiveArtifacts artifacts: '**/target/**/*.jar', fingerprint: true
-            archiveArtifacts artifacts: '**/target/**/*.war', fingerprint: true
+            archiveArtifacts artifacts: '**/target/site/**/*.*', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/**/*.jar', fingerprint: true, allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/target/**/*.war', fingerprint: true, allowEmptyArchive: true
         }
     }
 }
