@@ -63,7 +63,6 @@ pipeline {
         always {
             junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
             archiveArtifacts artifacts: '**/target/site/**/*.*', fingerprint: true
-            archiveArtifacts artifacts: 'target/staging/**/*.*', fingerprint: true, allowEmptyArchive: true
             archiveArtifacts artifacts: '**/target/**/*.jar', fingerprint: true
             archiveArtifacts artifacts: '**/target/**/*.war', fingerprint: true
         }
