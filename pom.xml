@@ -13,6 +13,7 @@
   <properties>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.release>11</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
@@ -28,6 +29,7 @@
     <org.slf4j.jcl-over-slf4j.version>1.7.30</org.slf4j.jcl-over-slf4j.version>
     <org.slf4j.jul-to-slf4j.version>1.7.30</org.slf4j.jul-to-slf4j.version>
     <junit.junit.version>4.13.2</junit.junit.version>
+    <org.junit.vintage.junit-vintage-engine.version>5.9.0</org.junit.vintage.junit-vintage-engine.version>
     <com.h2database.h2.version>1.4.199</com.h2database.h2.version>
     <jakarta.json.jakarta.json-api.version>2.1.1</jakarta.json.jakarta.json-api.version>
     <at.favre.lib.bcrypt.version>0.10.2</at.favre.lib.bcrypt.version>
@@ -58,6 +60,7 @@
 
     <!-- Plugins version -->
     <org.apache.maven.plugins.maven-jar-plugin.version>3.3.0</org.apache.maven.plugins.maven-jar-plugin.version>
+    <org.apache.maven.plugins.maven-javadoc-plugin.version>3.12.0</org.apache.maven.plugins.maven-javadoc-plugin.version>
     <org.apache.maven.plugins.maven-pmd-plugin.version>3.28.0</org.apache.maven.plugins.maven-pmd-plugin.version>
     <org.apache.maven.plugins.maven-project-info-reports-plugin.version>3.9.0</org.apache.maven.plugins.maven-project-info-reports-plugin.version>
     <org.apache.maven.plugins.maven-resources-plugin.version>3.3.1</org.apache.maven.plugins.maven-resources-plugin.version>
@@ -105,8 +108,20 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${org.apache.maven.plugins.maven-surefire-plugin.version}</version>
         <configuration>
+          <argLine>@{argLine} -Djava.awt.headless=true</argLine>
           <forkCount>1</forkCount>
           <reuseForks>false</reuseForks>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${org.apache.maven.plugins.maven-javadoc-plugin.version}</version>
+        <configuration>
+          <doclint>none</doclint>
+          <failOnWarnings>false</failOnWarnings>
+          <release>${maven.compiler.release}</release>
         </configuration>
       </plugin>
 
@@ -292,6 +307,12 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>${junit.junit.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.junit.vintage</groupId>
+        <artifactId>junit-vintage-engine</artifactId>
+        <version>${org.junit.vintage.junit-vintage-engine.version}</version>
       </dependency>
 
       <dependency>
@@ -564,6 +585,17 @@
             </reports>
           </reportSet>
         </reportSets>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>${org.apache.maven.plugins.maven-javadoc-plugin.version}</version>
+        <configuration>
+          <doclint>none</doclint>
+          <failOnWarnings>false</failOnWarnings>
+          <release>${maven.compiler.release}</release>
+        </configuration>
       </plugin>
     </plugins>
   </reporting>
