@@ -19,11 +19,14 @@ import org.subethamail.wiser.Wiser;
 import org.subethamail.wiser.WiserMessage;
 
 import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Part;
 import javax.mail.internet.MimeMessage;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.UriBuilder;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,8 +67,17 @@ public abstract class BaseJerseyTest extends JerseyTest {
      */
     private Wiser wiser;
 
+    /**
+     * Test SMTP server port.
+     */
+    private int smtpPort;
+
     public String adminToken() {
         return clientUtil.login("admin", "admin", false);
+    }
+
+    protected int getSmtpPort() {
+        return smtpPort;
     }
 
     @Override
@@ -92,6 +104,8 @@ public abstract class BaseJerseyTest extends JerseyTest {
     @Override
     @Before
     public void setUp() throws Exception {
+        forceSet(TestProperties.CONTAINER_PORT, String.valueOf(findAvailablePort()));
+        smtpPort = findAvailablePort();
         super.setUp();
         System.setProperty("docs.header_authentication", "true");
 
@@ -117,7 +131,7 @@ public abstract class BaseJerseyTest extends JerseyTest {
         httpServer.start();
 
         wiser = new Wiser();
-        wiser.setPort(2500);
+        wiser.setPort(smtpPort);
         wiser.start();
     }
 
@@ -130,26 +144,62 @@ public abstract class BaseJerseyTest extends JerseyTest {
      */
     protected String popEmail() throws MessagingException, IOException {
         List<WiserMessage> wiserMessageList = wiser.getMessages();
+        long timeout = System.currentTimeMillis() + 5000L;
+        while (wiserMessageList.isEmpty() && System.currentTimeMillis() < timeout) {
+            try {
+                Thread.sleep(100L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+            wiserMessageList = wiser.getMessages();
+        }
         if (wiserMessageList.isEmpty()) {
             return null;
         }
         WiserMessage wiserMessage = wiserMessageList.get(wiserMessageList.size() - 1);
         wiserMessageList.remove(wiserMessageList.size() - 1);
         MimeMessage message = wiserMessage.getMimeMessage();
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        message.writeTo(os);
-        return os.toString();
+        return getMessageContent(message);
+    }
+
+    private String getMessageContent(Part part) throws MessagingException, IOException {
+        Object content = part.getContent();
+        if (content instanceof String) {
+            return (String) content;
+        }
+        if (content instanceof Multipart) {
+            Multipart multipart = (Multipart) content;
+            StringBuilder contentBuilder = new StringBuilder();
+            for (int i = 0; i < multipart.getCount(); i++) {
+                contentBuilder.append(getMessageContent(multipart.getBodyPart(i)));
+            }
+            return contentBuilder.toString();
+        }
+        return "";
     }
 
     @Override
     @After
     public void tearDown() throws Exception {
-        super.tearDown();
-        if (wiser != null) {
-            wiser.stop();
+        try {
+            if (wiser != null) {
+                wiser.stop();
+                wiser = null;
+            }
+            if (httpServer != null) {
+                httpServer.shutdownNow();
+                httpServer = null;
+            }
+        } finally {
+            super.tearDown();
         }
-        if (httpServer != null) {
-            httpServer.shutdownNow();
+    }
+
+    private static int findAvailablePort() throws IOException {
+        try (ServerSocket serverSocket = new ServerSocket(0, 0, InetAddress.getByName("localhost"))) {
+            serverSocket.setReuseAddress(true);
+            return serverSocket.getLocalPort();
         }
     }
 }

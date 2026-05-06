@@ -63,7 +63,11 @@ public class PdfFormatHandler implements FormatHandler {
                 for (int pageIndex = 0; pageIndex < pdfDocument.getNumberOfPages(); pageIndex++) {
                     log.info("OCR page " + (pageIndex + 1) + "/" + pdfDocument.getNumberOfPages() + " of PDF file containing only images");
                     sb.append(" ");
-                    sb.append(FileUtil.ocrFile(language, renderer.renderImageWithDPI(pageIndex, 300, ImageType.GRAY)));
+                    String ocrContent = FileUtil.ocrFile(language, renderer.renderImageWithDPI(pageIndex, 300, ImageType.GRAY));
+                    if (ocrContent.trim().isEmpty() && !"eng".equals(language)) {
+                        ocrContent = FileUtil.ocrFile("eng", renderer.renderImageWithDPI(pageIndex, 300, ImageType.GRAY));
+                    }
+                    sb.append(ocrContent);
                 }
                 return sb.toString();
             } catch (Exception e) {
