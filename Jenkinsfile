@@ -33,6 +33,34 @@ pipeline {
             }
         }
 
+        stage('Prepare Docker') {
+            steps {
+                sh '''
+                    if docker info >/dev/null 2>&1; then
+                        echo "Docker daemon is ready."
+                        exit 0
+                    fi
+
+                    echo "Docker daemon is not ready. Trying to start Docker Desktop..."
+                    if command -v open >/dev/null 2>&1; then
+                        open -a Docker || true
+                    fi
+
+                    for attempt in $(seq 1 60); do
+                        if docker info >/dev/null 2>&1; then
+                            echo "Docker daemon is ready."
+                            exit 0
+                        fi
+                        echo "Waiting for Docker daemon... ${attempt}/60"
+                        sleep 2
+                    done
+
+                    echo "Docker daemon is still unavailable. Start Docker Desktop, then rebuild."
+                    docker info
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
