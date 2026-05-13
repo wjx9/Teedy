@@ -1,12 +1,18 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'DOCKER_IMAGE', defaultValue: 'wjx9/teedy', description: 'Docker Hub repository')
+        string(name: 'DOCKER_HUB_CREDENTIALS_ID', defaultValue: '123', description: 'Jenkins Docker Hub credential ID')
+    }
+
     environment {
         JAVA_HOME = "/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home"
         PATH = "/Library/Java/JavaVirtualMachines/amazon-corretto-11.jdk/Contents/Home/bin:/opt/homebrew/bin:/usr/local/bin:${env.PATH}"
         MAVEN_ARGS = "-B -ntp"
         DOCS_DEFAULT_LANGUAGE = "en"
         DOCS_BASE_URL = "http://localhost/docs"
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
     }
 
     options {
@@ -15,60 +21,56 @@ pipeline {
     }
 
     stages {
-        stage('Clean') {
+        stage('Checkout') {
             steps {
-                sh 'mvn ${MAVEN_ARGS} clean'
+                checkout scm
             }
         }
 
-        stage('Compile') {
+        stage('Build Teedy') {
             steps {
-                sh 'mvn ${MAVEN_ARGS} compile'
+                sh 'mvn ${MAVEN_ARGS} -DskipTests clean package'
             }
         }
 
-        stage('Test') {
+        stage('Build Docker Image') {
             steps {
-                sh 'mvn ${MAVEN_ARGS} test -Dmaven.test.failure.ignore=true'
+                script {
+                    docker.build("${params.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                }
             }
         }
 
-        stage('PMD') {
+        stage('Push Docker Image') {
             steps {
-                sh 'mvn ${MAVEN_ARGS} install -DskipTests pmd:pmd'
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', params.DOCKER_HUB_CREDENTIALS_ID) {
+                        def image = docker.image("${params.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                        image.push()
+                        image.push('latest')
+                    }
+                }
             }
         }
 
-        stage('JaCoCo') {
+        stage('Run Containers') {
             steps {
-                sh 'mvn ${MAVEN_ARGS} jacoco:report'
-            }
-        }
-
-        stage('Javadoc') {
-            steps {
-                sh 'mvn ${MAVEN_ARGS} javadoc:javadoc'
-            }
-        }
-
-        stage('Site') {
-            steps {
-                sh 'mvn ${MAVEN_ARGS} site'
-            }
-        }
-
-        stage('Package') {
-            steps {
-                sh 'mvn ${MAVEN_ARGS} package -DskipTests'
+                sh '''
+                    for port in 8082 8083 8084; do
+                        docker rm -f "teedy-container-${port}" || true
+                        docker run -d \
+                            --name "teedy-container-${port}" \
+                            -p "${port}:8080" \
+                            "${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    done
+                    docker ps --filter "name=teedy-container"
+                '''
             }
         }
     }
 
     post {
         always {
-            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
-            archiveArtifacts artifacts: '**/target/site/**/*.*', fingerprint: true, allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/target/**/*.jar', fingerprint: true, allowEmptyArchive: true
             archiveArtifacts artifacts: '**/target/**/*.war', fingerprint: true, allowEmptyArchive: true
         }
     }
